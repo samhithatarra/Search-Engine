@@ -5,8 +5,8 @@ class LinkedList:
         self.head = None
         self.tail = None
     
-    def sorted_add_node(self, docId, header_freq, body_freq):
-        new_node = Node(docId, header_freq, body_freq)
+    def sorted_add_node(self, docId, header_freq, body_freq, token_frequency):
+        new_node = Node(docId, header_freq, body_freq, token_frequency)
         
         # if this is the first node, make the head and tail point to the first node
         if self.head == None:
@@ -61,5 +61,6 @@ class LinkedList:
         current = self.head
         while current != None:
             if current.docId!=None:
-                print(current.docId, "HEADER SCORE:", current.header_freq, "BODY SCORE:", current.body_freq, "TF-IDF SCORE:", current.tf_idf_score)
+                print(current.docId, '->', current.token_freq)
+                #print(current.docId, "HEADER SCORE:", current.header_freq, "BODY SCORE:", current.body_freq, "TF-IDF SCORE:", current.tf_idf_score)
             current = current.next

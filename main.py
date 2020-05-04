@@ -62,7 +62,7 @@ def find_tokens(words_lst):
                 token_lst.append(token)
     return token_lst
 
-def add_to_postings(token, docId, header_freq, body_freq):
+def add_to_postings(token, docId, header_freq, body_freq, token_frequency):
     #-------------
     # Adds the posting for a token.
     # If token exists, it add a linkedlist 
@@ -72,11 +72,11 @@ def add_to_postings(token, docId, header_freq, body_freq):
     global posting
     if token not in posting.keys():
         posting_list = LinkedList()
-        posting_list.sorted_add_node(docId, header_freq, body_freq)
+        posting_list.sorted_add_node(docId, header_freq, body_freq, token_frequency)
         posting[token] = posting_list
     else:
         posting_list = posting[token]
-        posting_list.sorted_add_node(docId, header_freq, body_freq)
+        posting_list.sorted_add_node(docId, header_freq, body_freq, token_frequency)
     
     print ('token: ', token, "ID: ", posting[token].print_func())
     
@@ -93,14 +93,19 @@ def tf_calculation(unique_tokens,tags_dict,total_token_count):
         # Need to initialize new node for linked list
         header_freq = 0
         body_freq = 0
+        token_frequency = 0
         if token in tags_dict['headers']:
             header_freq += tags_dict['headers'][token]
+            token_frequency += header_freq
         if token in tags_dict['p']:
             body_freq += tags_dict['p'][token]
-            header_freq = float(header_freq)/total_token_count
-            body_freq = float(body_freq)/total_token_count
+            token_frequency += body_freq
+        # <--
+        header_freq = float(header_freq)/total_token_count
+        body_freq = float(body_freq)/total_token_count
+        
         # Calls function to add node into the index
-        add_to_postings(token, docId, header_freq, body_freq)
+        add_to_postings(token, docId, header_freq, body_freq, token_frequency)
     
 def calculate_tf_idf(docId):
     #-------------
