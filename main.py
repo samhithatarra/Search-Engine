@@ -27,7 +27,7 @@ def find_content(path):
     with open(path, "r") as current_file:
         json_obj = json.load(current_file)
         content = json_obj['content']
-        print(json_obj['url'])
+        #rint(json_obj['url'])
         soup = BeautifulSoup(content,"lxml")
         tags_dict['p'] = [s for s in soup.findAll('p')]
         header_lst = [s for s in soup.findAll('h1')]
@@ -78,7 +78,7 @@ def add_to_postings(token, docId, header_freq, body_freq, token_frequency):
         posting_list = posting[token]
         posting_list.sorted_add_node(docId, header_freq, body_freq, token_frequency)
     
-    print ('token: ', token, "ID: ", posting[token].print_func())
+    #print ('token: ', token, "ID: ", posting[token].print_func())
     
 
 
@@ -119,14 +119,14 @@ def calculate_tf_idf(docId):
         occurences_token = posting[token].len_of_list()
         # Idf score for a token
         idf_score = math.log(float(corpus_size)/(occurences_token+1))
-        print("----IDF SCORE----:", idf_score)
+        #print("----IDF SCORE----:", idf_score)
         # calculate the tf-idf for each doc in the linked list 
         posting[token].calculate_tfidf(idf_score)
-        print ('token: ', token, "ID: ", posting[token].print_func())
+        ## print ('token: ', token, "ID: ", posting[token].print_func())
 
 if __name__ == "__main__":
-
-    path_direc = "/Users/sarthakgupta/Search-Engine/ANALYST"
+    # /Users/sarthakgupta/Search-Engine/ANALYST
+    path_direc = "/Users/samhithatarra/Desktop/Search-Engine/DEV"
     for direc in pathlib.Path(path_direc).iterdir():
         for path in pathlib.Path(direc).iterdir():
             if path.is_file():
@@ -151,7 +151,7 @@ if __name__ == "__main__":
 
                 #tf calculation
                 tf_calculation(unique_tokens,tags_dict,total_token_count)
-
+                print(docId)
                 # for k,v in tags_dict.items():
                 #     print("***KEY***:", k, "VALUE:", v)
 
@@ -165,3 +165,7 @@ if __name__ == "__main__":
 #                     |                                    |
 # posting: {token: docId-x -> docId-y -> ..... , token: docId-v -> docId-z -> .... , ...}
 # SORTED BY DOC ID 
+    print("************** FEEDBACK REPORT **************")
+    print("Number of Indexed Documents:", docId)
+    print("Number of Unique Words:", len(posting.keys()))
+    print("************** FEEDBACK REPORT **************")
