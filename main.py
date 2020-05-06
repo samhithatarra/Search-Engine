@@ -10,6 +10,7 @@ import lxml
 from linkedlist import LinkedList
 from collections import defaultdict
 import math
+import timeit
 
 posting = dict()
 docId = 0
@@ -78,6 +79,9 @@ def add_to_postings(token, docId, header_freq, body_freq, token_frequency):
         posting_list = posting[token]
         posting_list.sorted_add_node(docId, header_freq, body_freq, token_frequency)
     
+    #posting[token].print_func()
+    #print("END")
+    
     #print ('token: ', token, "ID: ", posting[token].print_func())
     
 
@@ -122,10 +126,11 @@ def calculate_tf_idf(docId):
         #print("----IDF SCORE----:", idf_score)
         # calculate the tf-idf for each doc in the linked list 
         posting[token].calculate_tfidf(idf_score)
-        ## print ('token: ', token, "ID: ", posting[token].print_func())
+        # print ('token: ', token, "ID: ", posting[token].print_func())
 
 if __name__ == "__main__":
     # /Users/sarthakgupta/Search-Engine/ANALYST
+    start = timeit.default_timer()
     path_direc = "/Users/samhithatarra/Desktop/Search-Engine/DEV"
     for direc in pathlib.Path(path_direc).iterdir():
         for path in pathlib.Path(direc).iterdir():
@@ -151,6 +156,10 @@ if __name__ == "__main__":
 
                 #tf calculation
                 tf_calculation(unique_tokens,tags_dict,total_token_count)
+                time_lst = [1000,5000,10000,15000,20000,25000,30000,35000,40000,45000,50000,55000]
+                if (docId) in time_lst:
+                    stop = timeit.default_timer()
+                    print ("TIME:",stop-start)
                 print(docId)
                 # for k,v in tags_dict.items():
                 #     print("***KEY***:", k, "VALUE:", v)
