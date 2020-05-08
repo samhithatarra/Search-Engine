@@ -5,6 +5,7 @@ import nltk
 import pickle
 import pandas as pd
 import os
+import ast 
 # import ssl 
 # try:
 #     _create_unverified_https_context = ssl._create_unverified_context
@@ -26,6 +27,7 @@ from collections import OrderedDict
 #indexer = dict() **
 indexer_list = dict()
 docId = 0
+num_unique_tokens = 0 
 
 def find_content(path):
     #-------------
@@ -135,6 +137,9 @@ def tf_calculation(unique_tokens,tags_dict,total_token_count):
         # Calls function to add node into the index
         add_to_postings(token, docId, header_freq, body_freq, token_frequency)
     
+    # add ordered dict code here 
+    #for token, doc in indexer_list.items():
+    #    indexer_list[token] = dict(doc)
 # def calculate_tf_idf(docId):
 #     #-------------
 #     # Calculates the tf_idf score for each token and stores 
@@ -161,6 +166,7 @@ if __name__ == "__main__":
     for direc in pathlib.Path(path_direc).iterdir():
         print(direc)
         for path in pathlib.Path(direc).iterdir():
+            print(path)
             if path.is_file():
                 docId+=1 
 
@@ -181,7 +187,7 @@ if __name__ == "__main__":
                         token_freq_dict[token]+=1
                         total_token_count +=1
                     tags_dict[tag] = token_freq_dict 
-
+                    num_unique_tokens += len(unique_tokens)
                 #tf calculation
                 tf_calculation(unique_tokens,tags_dict,total_token_count)
                 time_lst = [1000,5000,10000,15000,20000,25000,30000,35000,40000,45000,50000,55000]
@@ -189,13 +195,35 @@ if __name__ == "__main__":
                     stop = timeit.default_timer()
                     print ("TIME:",stop-start)
                 
-                #json version
+                
+                    
 
+                # if docId == 300:
+                #     PathToFile = "/Users/kamaniya/Documents/Search-Engine/{0}.txt".format("test1")
+                #     filehandle = open(PathToFile, 'w')
+                #     #json.dump(indexer_list, filehandle)
+                #     filehandle.write(str(indexer_list))
+                #     #filehandle.write('\n')
+
+                #     filehandle.close()
+                #     indexer_list.clear()
+
+
+                #     filehandle2 = open(PathToFile, 'r')   
+                #     dictionary1 = eval(filehandle2.read()) 
+                #     filehandle2.close()
+
+                #     print(dictionary1)
 
                     # chunk = pd.read_json(PathToFile, lines = True, chunksize = 100)
                     # for c in chunk:
                     #     print(c)
+
+
                     
+                    
+
+
 
 
 
@@ -220,8 +248,7 @@ if __name__ == "__main__":
     json.dump(indexer_list, filehandle)
     filehandle.close()
     indexer_list.clear()
-    file_stats = os.stat(PathToFile)
-    print(f'File size in bytes is {file_stats.st_size}')
+
     #tf-idf calculation
     #calculate_tf_idf(docId)
 
@@ -232,7 +259,9 @@ if __name__ == "__main__":
 #                     |                                    |
 # posting: {token: docId-x -> docId-y -> ..... , token: docId-v -> docId-z -> .... , ...}
 # SORTED BY DOC ID 
+    file_info = os.stat(PathToFile)
     print("************** FEEDBACK REPORT **************")
     print("Number of Indexed Documents:", docId)
-    print("Number of Unique Words:", len(indexer.keys()))
+    print("Number of Unique Words:", num_unique_tokens)
+    print("File size in kb: ", float(file_info.st_size) / 1024)
     print("************** FEEDBACK REPORT **************")
