@@ -1,37 +1,32 @@
 # https://www.geeksforgeeks.org/python-stemming-words-with-nltk/ used for tokenizing and stemming
+
 import pathlib
 import json
-import nltk
-import pickle
-import pandas as pd
-import os
-import ast 
-# import ssl 
-# try:
-#     _create_unverified_https_context = ssl._create_unverified_context
-# except AttributeError:
-#     pass
-# else:
-#     ssl._create_default_https_context = _create_unverified_https_context
-# nltk.download()
-from nltk.stem import PorterStemmer 
-from nltk.tokenize import word_tokenize
+#import nltk
+#import pickle
+#import os
+#import ast
+import re
+from nltk.stem import PorterStemmer
+#from nltk.tokenize import word_tokenize
 from bs4 import BeautifulSoup
-import lxml
-from linkedlist import LinkedList
+#import lxml
+#from linkedlist import LinkedList
 from collections import defaultdict
 import math
 import timeit
-from posting import Posting
+#from posting import Posting
 from collections import OrderedDict
-#indexer = dict() **
+
+#idf  =  math.log(float(55393)/(8801705+1))
 indexer_list = dict()
 docId = 0
-num_unique_tokens = 0 
+num_unique_tokens = 0
+count_tokens = []  # to count the number of tokens in the whole indexer
 
 def find_content(path):
     #-------------
-    # Finds the content from the json file. 
+    # Finds the content from the json file.
     # Retruns a dictionary with two keys: headers and p
     # value of key 'headers': a list of sentences from h1.h2,h3, bold and strong tags
     # value of key 'p'': a list of sentences from p tag
@@ -42,7 +37,7 @@ def find_content(path):
     with open(path, "r") as current_file:
         json_obj = json.load(current_file)
         content = json_obj['content']
-        #print(json_obj['url'])
+        print (json_obj['url'])
         soup = BeautifulSoup(content,"html.parser")
         tags_dict['p'] = [s for s in soup.findAll('p')]
         header_lst = [s for s in soup.findAll('h1')]
@@ -61,66 +56,61 @@ def find_content(path):
 
 def find_tokens(words_lst):
     #-------------
-    # Finds the tokens from the sentences found from the 
-    # content and returns a list of tokens found in a 
-    # particular tag. 
+    # Finds the tokens from the sentences found from the
+    # content and returns a list of tokens found in a
+    # particular tag.
     #-------------
 
     token_lst = []
     for word in words_lst:
+        #print(word)
         fin_text = ''.join(word.findAll(text=True))
         fin_text = fin_text.lower()
-        nltk_tokens = nltk.word_tokenize(fin_text)
+        fin_text = re.sub('[^a-zA-Z0-9]+', ' ', fin_text)
 
-        for token in nltk_tokens:
-            if len(token) >= 2:
+        for token in fin_text.split():
+            if len(token) > 2:
                 token_lst.append(token)
+
     return token_lst
+    #token_lst = []
+    #for word in words_lst:
+        #fin_text = ''.join(word.findAll(text=True))
+        #fin_text = fin_text.encode('ascii', 'ignore')
+        #value = value.encode
+        #nltk_tokens = nltk.word_tokenize(fin_text.lower())
+
+        #for token in nltk_tokens:
+            #if len(token) >= 2:
+    #             token_lst.append(token)
+    # return token_lst
 
 def add_to_postings(token, docId, header_freq, body_freq, token_frequency):
     #-------------
     # Adds the posting for a token.
-    # If token exists, it add a linkedlist 
-    # and if not, it creates a linkedlist 
+    # If token exists, it add a linkedlist
+    # and if not, it creates a linkedlist
     #-------------
 
-    #global indexer **
-    global indexer_list 
+    global indexer_list
     if token not in indexer_list.keys():
-        # posting_list = []
-        # new_post_obj = Posting(docId, header_freq, body_freq, token_frequency)
-        # posting_list.append(new_post_obj)
-        # indexer_list[token] = posting_list
         posting_dict = OrderedDict()
         posting_dict[docId] = (header_freq, body_freq, token_frequency)
-        indexer_list[token] = posting_dict 
+        indexer_list[token] = posting_dict
 
     else:
-        # posting_list = indexer_list[token]
-        # new_post_obj = Posting(docId, header_freq, body_freq, token_frequency)
-        # posting_list.append(new_post_obj)
-        # indexer_list[token] = posting_list
         posting_dict = indexer_list[token]
         posting_dict[docId] = (header_freq, body_freq, token_frequency)
         indexer_list[token] = posting_dict
 
-
-    #posting[token].print_func()
-    #print("END")
-    
-    #print ('token: ', token, "ID: ", posting[token].print_func())
-    
-
-
 def tf_calculation(unique_tokens,tags_dict,total_token_count):
     #-------------
-    # Calculates the tf score for each token and stores 
-    # the docId and the tf score in the token node for 
-    # each doucment. 
+    # Calculates the tf score for each token and stores
+    # the docId and the tf score in the token node for
+    # each doucment.
     #-------------
 
     for token in unique_tokens:
-        # Need to initialize new node for linked list
         header_freq = 0
         body_freq = 0
         token_frequency = 0
@@ -130,21 +120,14 @@ def tf_calculation(unique_tokens,tags_dict,total_token_count):
         if token in tags_dict['p']:
             body_freq += tags_dict['p'][token]
             token_frequency += body_freq
-        # <--
-        header_freq = float(header_freq)/total_token_count
-        body_freq = float(body_freq)/total_token_count
-        
-        # Calls function to add node into the index
+        header_freq = round(float(header_freq)/total_token_count,5)
+        body_freq = round(float(body_freq)/total_token_count,5)
         add_to_postings(token, docId, header_freq, body_freq, token_frequency)
-    
-    # add ordered dict code here 
-    #for token, doc in indexer_list.items():
-    #    indexer_list[token] = dict(doc)
 # def calculate_tf_idf(docId):
 #     #-------------
-#     # Calculates the tf_idf score for each token and stores 
+#     # Calculates the tf_idf score for each token and stores
 #     # the tf-idf score in the token node for each document
-#     # by calling : calculate_tfidf. 
+#     # by calling : calculate_tfidf.
 #     #-------------
 
 #     corpus_size = docId
@@ -153,115 +136,72 @@ def tf_calculation(unique_tokens,tags_dict,total_token_count):
 #         # Idf score for a token
 #         idf_score = math.log(float(corpus_size)/(occurences_token+1))
 #         #print("----IDF SCORE----:", idf_score)
-#         # calculate the tf-idf for each doc in the linked list 
+#         # calculate the tf-idf for each doc in the linked list
 #         indexer[token].calculate_tfidf(idf_score)
 #         # print ('token: ', token, "ID: ", posting[token].print_func())
-
-
-
 if __name__ == "__main__":
-    # /Users/sarthakgupta/Search-Engine/ANALYST
-    start = timeit.default_timer()
-    path_direc = "/Users/kamaniya/Documents/Search-Engine/DEV.nosync"   #"/Users/samhithatarra/Desktop/Search-Engine/DEV"
-    for direc in pathlib.Path(path_direc).iterdir():
-        print(direc)
-        for path in pathlib.Path(direc).iterdir():
-            print(path)
-            if path.is_file():
-                docId+=1 
 
+    start = timeit.default_timer()
+    counter_file = 0
+    path_direc = "/Users/sarthakgupta/Desktop/Search-Engine-master/DEV"   #"/Users/samhithatarra/Desktop/Search-Engine/DEV"
+    for direc in pathlib.Path(path_direc).iterdir():
+        
+        for path in pathlib.Path(direc).iterdir():
+            if path.is_file():
+                docId+=1
                 total_token_count = 0
                 unique_tokens = []
+                
                 tags_dict = find_content(path)
-            
+
                 for tag, words_lst in tags_dict.items():
                     token_lst = find_tokens(words_lst)
                     ps = PorterStemmer()
                     token_freq_dict = defaultdict(int)
-                    for token in token_lst:
-                        # Stemming the token 
-                        token=ps.stem(token)   
-                        if token not in unique_tokens:
-                            # List of unique tokens for each json file 
-                            unique_tokens.append(token)  
-                        token_freq_dict[token]+=1
-                        total_token_count +=1
-                    tags_dict[tag] = token_freq_dict 
-                    num_unique_tokens += len(unique_tokens)
-                #tf calculation
-                tf_calculation(unique_tokens,tags_dict,total_token_count)
-                time_lst = [1000,5000,10000,15000,20000,25000,30000,35000,40000,45000,50000,55000]
-                if (docId) in time_lst:
-                    stop = timeit.default_timer()
-                    print ("TIME:",stop-start)
+                    if token_lst!=None:
+                        for token in token_lst:
+                            # Stemming the token
+                            token=ps.stem(token)
+                            if token not in unique_tokens:
+                                # List of unique tokens for each json file
+                                unique_tokens.append(token)
+                            count_tokens.append(token)
+                            token_freq_dict[token]+=1
+                            total_token_count +=1
+                        tags_dict[tag] = token_freq_dict
+                        num_unique_tokens += len(unique_tokens)
+                    
+                    #tf calculation
+                    tf_calculation(unique_tokens,tags_dict,total_token_count)
+                    time_lst = [1000,5000,10000,15000,20000,25000,30000,35000,40000,45000,50000,55393]
+                    if (docId) in time_lst:
+                        stop = timeit.default_timer()
+                        print ("TIME:",stop-start)
+                file_lst = [14000,28000,42000,55393]
                 
-                
-                    
-
-                # if docId == 300:
-                #     PathToFile = "/Users/kamaniya/Documents/Search-Engine/{0}.txt".format("test1")
-                #     filehandle = open(PathToFile, 'w')
-                #     #json.dump(indexer_list, filehandle)
-                #     filehandle.write(str(indexer_list))
-                #     #filehandle.write('\n')
-
-                #     filehandle.close()
-                #     indexer_list.clear()
-
-
-                #     filehandle2 = open(PathToFile, 'r')   
-                #     dictionary1 = eval(filehandle2.read()) 
-                #     filehandle2.close()
-
-                #     print(dictionary1)
-
-                    # chunk = pd.read_json(PathToFile, lines = True, chunksize = 100)
-                    # for c in chunk:
-                    #     print(c)
-
-
-                    
-                    
-
-
-
-
-
-                # if docId == 300:
-                #     PathToFile = "/Users/kamaniya/Documents/Search-Engine/{0}.txt".format("test")
-                #     filehandle = open(PathToFile,'wb')
-                #     od = OrderedDict(sorted(indexer_list.items()))
-                #     pickle.dump(od, filehandle)
-
-                #     indexer_list.clear()
-                #     print("LENGTH OF DICT", len(indexer_list.keys()))
-                #     filehandle.close()
-                #     loaded_index = pickle.load(filehandle)
-                #     for key, val in loaded_index.items():
-                #         print(key, [x.docId for x in val])
-                #     filehandle.close()
+                PathToFile = "/Users/sarthakgupta/Search-Engine/{0}.txt".format(counter_file)
+                dict_ = {}
+                if docId in file_lst:
+                    with open(PathToFile,'w+') as f:
+                        for tokens, postings in sorted(indexer_list.items(), key=lambda item: item[0]):
+                            dict_[tokens] = dict(postings)
+                            f.write(str(dict_))
+                            f.write('\n')
+                            dict_={}
+                    indexer_list.clear()
+                    counter_file+=1
                 print(docId)
-                # for k,v in tags_dict.items():
-                #     print("***KEY***:", k, "VALUE:", v)
-    PathToFile = "/Users/kamaniya/Documents/Search-Engine/{0}.json".format("test")
-    filehandle = open(PathToFile, 'w')
-    json.dump(indexer_list, filehandle)
-    filehandle.close()
-    indexer_list.clear()
 
-    #tf-idf calculation
-    #calculate_tf_idf(docId)
 
-# STRUCTURE 
-
-# (nodes: header freq, body freq, tf-idf score)  (nodes: header freq, body freq, tf-idf score)
-#                     ^                                    ^
-#                     |                                    |
-# posting: {token: docId-x -> docId-y -> ..... , token: docId-v -> docId-z -> .... , ...}
-# SORTED BY DOC ID 
-    file_info = os.stat(PathToFile)
     print("************** FEEDBACK REPORT **************")
     print("Number of Indexed Documents:", docId)
-    print("Number of Unique Words:", num_unique_tokens)
-    print("File size in kb: ", float(file_info.st_size) / 1024)
+    print("Number of Unique Words:", len(set(count_tokens)))
     print("************** FEEDBACK REPORT **************")
+
+    # file_info = os.stat(PathToFile)
+    # print("************** FEEDBACK REPORT **************")
+    # print("Number of Indexed Documents:", docId)
+    # print("Number of Unique Words:", num_unique_tokens)
+    # print("File size in kb: ", float(file_info.st_size) / 1024)
+    # print("************** FEEDBACK REPORT **************")
+
