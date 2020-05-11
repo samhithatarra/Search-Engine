@@ -16,6 +16,7 @@
 import pathlib
 import json
 import re
+import html5lib
 from nltk.stem import PorterStemmer
 from bs4 import BeautifulSoup, Comment
 import bs4
@@ -23,7 +24,7 @@ from collections import defaultdict
 from collections import OrderedDict
 from merge import merge_files
 import os
-
+import lxml 
 indexer_list = dict()
 docId = 0
 num_unique_tokens = 0
@@ -49,7 +50,7 @@ def find_content(path,docId):
         #if json_obj['url'] =='https://www.ics.uci.edu/~ihler/pubs.html':
         doc_url[docId] = json_obj['url']
         print (json_obj['url'])
-        soup = BeautifulSoup(content,"html.parser")
+        soup = BeautifulSoup(content,"html5lib")
         for comments in soup.findAll(text=lambda text:isinstance(text, Comment)):
             comments.extract()
         tags_dict['p'] = [s for s in soup.findAll('p')]
@@ -88,10 +89,11 @@ def find_tokens(words_lst,unique_tokens):
     for token in find_text:
         if len(token) >= 2:
             token=ps.stem(token)
-            token_lst.append(token)
-            unique_tokens.append(token)
-            count_tokens.append(token)
-            token_freq_dict[token]+=1
+            if len(token) >= 2:
+                token_lst.append(token)
+                unique_tokens.append(token)
+                count_tokens.append(token)
+                token_freq_dict[token]+=1
     print("end of 2")
     return (token_freq_dict,list(set(unique_tokens)),token_lst)
 
@@ -132,8 +134,7 @@ def frequency_calculation(unique_tokens,tags_dict):
 if __name__ == "__main__":
 
     counter_file = 0
-    path_direc = "/Users/sarthakgupta/Desktop/Search-Engine-master/DEV"   
-    #path_direc = '/Users/sarthakgupta/Desktop/Search-Engine-master/DEV/www_ics_uci_edu/0bf9e8ca5de04338822fd1cb927190b0c22d30ebfd14bbb94b475ec76dc65d9f.json'
+    path_direc = "/Users/kamaniya/Documents/Search-Engine/DEV.nosync"  
     for direc in pathlib.Path(path_direc).iterdir():
         
         for path in pathlib.Path(direc).iterdir():
@@ -164,7 +165,7 @@ if __name__ == "__main__":
                 print(docId)
             # Offloading 4 times 
             file_lst = [14000,28000,42000,55393]
-            PathToFile = "/Users/sarthakgupta/Search-Engine/{}.txt".format(counter_file)
+            PathToFile = "/Users/kamaniya/Documents/Search-Engine/{}.txt".format(counter_file)
             dict_ = {}
             if docId in file_lst:
                 with open(PathToFile,'w+') as f:
@@ -178,41 +179,43 @@ if __name__ == "__main__":
                     
 
     # ********** MERGING ************************** 
-    file1 = "/Users/sarthakgupta/Search-Engine/0.txt"
-    file2 = "/Users/sarthakgupta/Search-Engine/1.txt"
-    file3 = "/Users/sarthakgupta/Search-Engine/2.txt"
-    file4 = "/Users/sarthakgupta/Search-Engine/3.txt"
-    merge_1 = "/Users/sarthakgupta/Search-Engine/{}.txt".format('merge_1')
-    merge_2 = "/Users/sarthakgupta/Search-Engine/{}.txt".format('merge_2')
-    final_merge = "/Users/sarthakgupta/Search-Engine/{}.txt".format('final_merge')
+    file1 = "/Users/kamaniya/Documents/Search-Engine/0.txt"
+    file2 = "/Users/kamaniya/Documents/Search-Engine/1.txt"
+    file3 = "/Users/kamaniya/Documents/Search-Engine/2.txt"
+    file4 = "/Users/kamaniya/Documents/Search-Engine/3.txt"
+    merge_1 = "/Users/kamaniya/Documents/Search-Engine/{}.txt".format('merge_1')
+    merge_2 = "/Users/kamaniya/Documents/Search-Engine/{}.txt".format('merge_2')
+    final_merge = "/Users/kamaniya/Documents/Search-Engine/{}.txt".format('final_merge')
     merge_files(file1,file2,merge_1)
     merge_files(file3,file4,merge_2)
     merge_files(merge_1,merge_2,final_merge)
 
     # ********** INDEX OF INDEX *******************
-    doc = open("/Users/sarthakgupta/Search-Engine/urls.txt",'w')
-    doc.write(doc_url)
+    doc = open("/Users/kamaniya/Documents/Search-Engine/urls.txt",'w')
+    doc.write(str(doc_url))
     index_of_index = {}
     index_of_index['digit'] = 1
-    f = open("/Users/sarthakgupta/Search-Engine/0-.txt",'r')  # final_merge.txt
+    f = open("/Users/kamaniya/Documents/Search-Engine/final_merge.txt",'r') 
     alphabet = 'a'
     line_number  = 0
     ord_a = ord(alphabet)   
     for line in f:
         line_number +=1
         if line.startswith("{'"+alphabet):
-            alphabet = char(ord(alphabet)+1)
+            alphabet = chr(ord(alphabet)+1)
+            index_of_index[chr(ord(alphabet)-1)] = line_number
+        elif alphabet == 'z' and line.startswith("{'"+alphabet):
             index_of_index[alphabet] = line_number
-        if alphabet == 'z':
             break
+      
     
-    index_index = open("/Users/sarthakgupta/Search-Engine/index_of_index.txt",'w')
-    index_index.write(index_of_index)
+    index_index = open("/Users/kamaniya/Documents/Search-Engine/index_of_index.txt",'w')
+    index_index.write(str(index_of_index))
 
     print("************** FEEDBACK REPORT **************")
     print("Number of Indexed Documents:", docId)
     print("Number of Unique Words:", len(set(count_tokens)))
-    complete_index_file = "/Users/sarthakgupta/Search-Engine/final_merge.txt"
+    complete_index_file = "/Users/kamaniya/Documents/Search-Engine/final_merge.txt"
     file_info = os.stat(complete_index_file)
-    print("Complete Index File Size in KB: ", float(file_info.st_size) / 1024)
+    print("Complete Index File Size in KB: ", float(file_info.st_size) / 1000)
     print("************** FEEDBACK REPORT **************")
