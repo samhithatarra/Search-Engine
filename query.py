@@ -5,17 +5,18 @@ from nltk.stem import PorterStemmer
 import re
 import ast 
 import timeit
+from orderedset import OrderedSet
 
 def get_seek():
 
-    f = open("/Users/kamaniya/Documents/Search-Engine/final_merge.txt", 'r')
+    f = open(path +"final_merge.txt", 'r')
     line_offset = []
     offset = 0
     for line in f:
         line_offset.append(offset)
         offset += len(line)
     f.close()
-    return(line_offset)
+    return (line_offset)
 
 def get_query():
     
@@ -42,80 +43,96 @@ def extract_posting(query_list):
     
     posting_list = []
     posting_dict = {}
-    f = open("/Users/kamaniya/Documents/Search-Engine/final_merge.txt", 'r')
+    f = open(path+"final_merge.txt", 'r')
+
     line_offset = get_seek()
-    #counter = 0
     for token in query_list:
         counter = 0
-        f.seek(line_offset[index_of_index[token]-1])  # gives the line from where we have to start searching
-        line = f.readline()  # reads the first line from where we have to start  after seek
-        #print (line)
-        '''if token[0] == 'z':
-            last_line = ''
-        elif token[0].isdigit():
-            last_line = line_offset[index_of_index['a']]
-        else:
-            order_ = ord(token[0])+1
-            f.seek(line_offset[index_of_index[chr(order_)]-1]) # this finds the last line -- where the loop should end. 
-            last_line = f.readline()  # reads the last line
-        f.seek(line_offset[index_of_index[token[0]]-1])  # gives the line from where we have to start searching
-        line = f.readline()  # reads the first line from where we have to start  after seek
-        line_found = 'place holder'  # random string - if we don't find the token
-        while counter !=1:
+        # Gives the line from where we have to start searching
+        if token in index_of_index:
+            f.seek(line_offset[index_of_index[token]-1])  
+            # Reads the first line from where we have to start  after seek
+            line = f.readline()  
             line = ast.literal_eval(line)
-            token_found = [*line.keys()][0]
-            if token == token_found:
-                counter =1
-                line_found = token_found
-                break
-            elif line == last_line:
-                break
-            line = f.readline()'''
-        #if counter == 1:
-            #line_found = line_found.strip()
-        line = ast.literal_eval(line)
-        dict_ = line
-        key = [*dict_.keys()][0]
-        value = dict_[key]
-        #print(value)
-        posting_dict[key] = value
-        posting_list.append(posting_dict)
-
-    #print (posting_dict)
+            dict_ = line
+            key = [*dict_.keys()][0]
+            value = dict_[key]
+            posting_dict[key] = dict(sorted(value.items(), key = lambda x:x[1], reverse = True)) #value
+            #print (posting_dict[key])
+            #print()
+            posting_list.append(posting_dict)
+    
     f.close()
-    #return 
-    find_query(posting_dict)
-    #return posting_dict
+    if (posting_dict!={}):
+        find_query(posting_dict)
+    else:
+        print ("Query not found")
+    
     
 def find_query(posting_dict):
-    global start_time
-    #stop = timeit.default_timer()
-    list_docId =[]
-    for token, posting in posting_dict.items():
-        list_docId.append(set(posting.keys()))
     
-    set_intersection  = set.intersection(*list_docId)
+    global start_time
+    list_docId =[]
+    #print(posting_dict)
+    #print()
+    #print("HERE")
+    index = -1
+    final_index = 0
+    length = 1000
+    for token, posting in posting_dict.items():
+        #print(token, posting)
+        #set_ = set(posting.keys())
+        '''index += 1
+        if len(posting.keys())<length:
+            final_index = index 
+            length = len(posting.keys())'''
+        list_docId.append(OrderedSet(posting.keys()))
+        
+    #[value for value in lst1 if value in lst2]
+    #for value in list1:
+        #if value in list 2 :
+            #append
+
+    #print()
+
+    #print ("set list ", list_docId)
+    #list_docId.sort(key=len)
+    set_intersection = list_docId[final_index]
+    list_docId.pop(final_index)
+    if len(list_docId) >= 1:
+        for sets in list_docId:
+            set_intersection = set_intersection & sets
+    #set_intersection  = OrderedSet.intersection(*list_docId)
+    #print (set_intersection)
     stop = timeit.default_timer()
     print ("TIME:", (stop - start_time) * 1000, 'milliseconds')
     print()
     set_intersection = list(set_intersection)
-    for i in range(0, 5):
-        print(urls[set_intersection[i]])
+    print (set_intersection)
+    
+
+    url = 0
+    while len(set_intersection) > url and url < 5:
+        print(urls[set_intersection[url]])
+        url = url + 1
 
 if __name__ == "__main__":
-    f2 = open("/Users/kamaniya/Documents/Search-Engine/urls.txt", 'r')
+
+    path = "/Users/kamaniya/Documents/Search-Engine/"
+    
+    f2 = open(path+"urls.txt", 'r')
     line = f2.read()
     urls = ast.literal_eval(line)
     f2.close()
     start_time = timeit.default_timer()
+    
     index_of_index = {}
-    f = open("/Users/kamaniya/Documents/Search-Engine/index_of_index-1.txt", 'r')
+    f = open(path+"index_of_index-1.txt", 'r')
     index = f.read()
     index_of_index = ast.literal_eval(index)
+    
     query = get_query()
     extract_posting(query)
+    print()
     f.close()
-    print() 
- 
-
-  
+    
