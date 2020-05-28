@@ -4,9 +4,6 @@
 # --
 # https://itqna.net/questions/68805/remove-comment-tag-and-its-contents-beautifulsoup-4
 # Used above link for removing comments in html content
-# --
-# https://towardsdatascience.com/tf-idf-for-document-ranking-from-scratch-in-python-on-real-world-dataset-796d339a4089
-# Used above link for tf-idf
 # -----------------------
 
 # --- Team Members ---
@@ -36,7 +33,7 @@ num_unique_tokens = 0
 count_tokens = []  
 doc_url = dict()
 
-def find_content(path,docId):
+def find_content(path):
     #-------------
     # Finds the content from the json file.
     # Returns a dictionary with two keys: headers and p
@@ -49,13 +46,8 @@ def find_content(path,docId):
     with open(path, "r") as current_file:
         json_obj = json.load(current_file)
         content = json_obj['content']
-        #print ("inside find content")
-        
-        
-        #if json_obj['url'] =='https://www.ics.uci.edu/~ihler/pubs.html':
+        # Only extracting webpage content for links without fragments
         if '#' not in str(json_obj['url']): 
-            doc_url[docId] = json_obj['url']
-            print (json_obj['url'])
             soup = BeautifulSoup(content,"html5lib")
             for comments in soup.findAll(text=lambda text:isinstance(text, Comment)):
                 comments.extract()
@@ -72,7 +64,7 @@ def find_content(path,docId):
             for s in soup.findAll('strong'):
                 header_lst.append(s)
             tags_dict['headers'] = header_lst
-    return tags_dict
+    return tags_dict,json_obj['url']
 
 def find_tokens(words_lst,unique_tokens):
     #-------------
@@ -80,18 +72,18 @@ def find_tokens(words_lst,unique_tokens):
     # content and returns a list of tokens found in a
     # particular tag.
     #-------------
-    #https://www.ics.uci.edu/~ihler/pubs.html
+    
     ps = PorterStemmer()
     token_lst = []
     find_text = []
     token_freq_dict = defaultdict(int)
-    #print("start of for 1")
+   
     for word in words_lst:
         fin_text = ''.join(word.findAll(text=True))
         fin_text = fin_text.lower()
         fin_text = re.sub('[^a-zA-Z0-9]+',' ', str(fin_text))
         find_text.extend(fin_text.split())
-    # print("start of for 2")
+  
     for token in find_text:
         if len(token) >= 2:
             token=ps.stem(token)
@@ -100,7 +92,7 @@ def find_tokens(words_lst,unique_tokens):
                 unique_tokens.append(token)
                 count_tokens.append(token)
                 token_freq_dict[token]+=1
-    # print("end of 2")
+   
     return (token_freq_dict,list(set(unique_tokens)),token_lst)
 
 def add_to_postings(token, docId, token_frequency, header_freq, body_freq):
@@ -108,6 +100,8 @@ def add_to_postings(token, docId, token_frequency, header_freq, body_freq):
     # Adds the posting for a token.
     # If token exists, it adds a key and value
     # and if not, it creates a ordered dict
+    # STRUCTURE: {token:{dociD:[posting]},{dociD:[posting]},{dociD:[posting]}, token:{dociD:[posting]},....}
+    # [posting] = [token_frequency(total_frequency), header frequency, body frequency]
     #-------------
 
     global indexer_list
@@ -124,8 +118,8 @@ def add_to_postings(token, docId, token_frequency, header_freq, body_freq):
 def frequency_calculation(unique_tokens,tags_dict):
     #-------------
     # Calculates the frequency count for each token and stores
-    # the docId and the frequency in the indexer_list for
-    # each document.
+    # the docId, total frequency, header frequency and body frequency 
+    # in the indexer_list for each document.
     #-------------
 
     for token in unique_tokens:
@@ -140,15 +134,21 @@ def frequency_calculation(unique_tokens,tags_dict):
             body_freq += tags_dict['p'][token]
             token_frequency += tags_dict['p'][token]
 
-        # Calls function to add node into the index
+        # Calculating the tf scores for the tokens that 
+        # appear in the headers 
         if header_freq > 0:
-            header_freq = math.log((float(header_freq)/token_frequency),10)
+            header_freq = 1 + math.log(float(header_freq))
         else:
             header_freq = 0
+
+        # Calculating the tf scores for the tokens that 
+        # appear in the body
         if body_freq > 0:
-            body_freq = math.log((float(body_freq)/token_frequency),10)
+            body_freq = 1 + math.log(float(body_freq))
         else:
             body_freq = 0
+        
+        # Adding the posting list along with the docId in the indexer_list
         add_to_postings(token, docId, token_frequency, header_freq, body_freq)
 
 if __name__ == "__main__":
@@ -161,10 +161,11 @@ if __name__ == "__main__":
                 
                 total_token_count = 0
                 unique_tokens = []
-            
-                tags_dict = find_content(path, docId)
+
+                (tags_dict,url) = find_content(path)
                 if (tags_dict!={}):
                     docId+=1
+                    doc_url[docId] = url
                     for tag, words_lst in tags_dict.items():
                     
                         (token_freq_dict,unique_tokens,token_lst) = find_tokens(words_lst,unique_tokens)
@@ -174,8 +175,10 @@ if __name__ == "__main__":
                             num_unique_tokens += len(unique_tokens)
                         
                         frequency_calculation(unique_tokens,tags_dict)
-                    print(docId)
-            # Offloading 4 times 
+                    
+
+    # Offloading 4 times 
+
             file_lst = [14000,28000,42000]
             PathToFile = "/Users/kamaniya/Documents/Search-Engine/{}.txt".format(counter_file)
             dict_ = {}
@@ -211,42 +214,7 @@ if __name__ == "__main__":
     merge_files(file1,file2,merge_1)
     merge_files(file3,file4,merge_2)
     merge_files(merge_1,merge_2,final_merge)
-
-    # ********** INDEX OF INDEX *******************
-    doc = open("/Users/kamaniya/Documents/Search-Engine/urls.txt",'w')
-    doc.write(str(doc_url))
-    doc.close()
-    index_of_index = {}
-    index_of_index['digit'] = 1
-    f = open("/Users/kamaniya/Documents/Search-Engine/final_merge.txt",'r') 
-    alphabet = 'a'
-    line_number  = 0
-    ord_a = ord(alphabet)   
-    for line in f:
-        line_number +=1
-        if line.startswith("{'"+alphabet):
-            alphabet = chr(ord(alphabet)+1)
-            index_of_index[chr(ord(alphabet)-1)] = line_number
-        elif alphabet == 'z' and line.startswith("{'"+alphabet):
-            index_of_index[alphabet] = line_number
-            break
-      
-    
-    f.close()
-    # ************ INDEX OF INDEX (each token) ******************
-    index_of_index = {}
-    counter = 0
-    f = open("/Users/kamaniya/Documents/Search-Engine/final_merge.txt",'r') 
-    for line in f:
-        counter+=1
-        line = ast.literal_eval(line)
-        line_key = [*line.keys()][0]
-        index_of_index[line_key] = counter
-    f.close()
-    index_index = open("/Users/kamaniya/Documents/Search-Engine/index_of_index-1.txt",'w')
-    index_index.write(str(index_of_index))
-    index_index.close() 
-    
+ 
 
     print("************** FEEDBACK REPORT **************")
     print("Number of Indexed Documents:", docId)

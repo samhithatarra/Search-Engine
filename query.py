@@ -1,39 +1,60 @@
-#query.py
+# ---- Sources Used ----
 # https://stackoverflow.com/questions/620367/how-to-jump-to-a-particular-line-in-a-huge-text-file
+# -----------------------
 
 from nltk.stem import PorterStemmer
 import re
 import ast 
 import timeit
 from orderedset import OrderedSet
+from collections import defaultdict
+import math
 
-def get_seek():
-    global line_offset
+def get_cache():
+
+    # -------------
+    # Reading the cache dictionary
+    # -------------
     global cache_dict
-    f = open(path +"tfidf_index.txt", 'r')
-    
-    offset = 0
-    for line in f:
-        line_dict = ast.literal_eval(line)
-        line_key = [*line_dict.keys()][0]
-        if line_key == 'of' or line_key == "the" or line_key == "and":
-            cache_dict[line_key] = line_dict[line_key]
-        line_offset.append(offset)
-        offset += len(line)
+    f = open(path +"cache.txt", 'r')
+    cache_ = f.read()
+    cache_dict = ast.literal_eval(cache_)
+   
     f.close()
 
-    #return (line_offset)
-
-def get_query():
+def get_seek():
     
-    query = input('Enter the query to be searched: ')
+    #------------
+    # Stores the seek position dictionary in 
+    # line_offset. 
+    #-------------
+    
+    global line_offset
+    f = open(path +"offset.txt", 'r')
+    line_ = f.read()
+    line_offset = eval(line_)
+    f.close()
+
+def get_query(query_):
+    # ------------
+    # Taking in search input from the user 
+    # tokenizing the query and starting the timer
+    # -------------
+    
+    query = query_
     global start_time 
     start_time =  timeit.default_timer()
     query_lst = tokenize_query(query)
     return query_lst
-
+# 
 def tokenize_query(query):
 
+    #-------------
+    # Tokenizes the query that the user enters
+    # and returns a list of tokens present in the query
+    # after stemming.
+    #-------------
+    
     ps = PorterStemmer()
     token_lst = []
     q_text = query.lower()
@@ -43,124 +64,181 @@ def tokenize_query(query):
         if len(token) >= 2:
             token=ps.stem(token)
             token_lst.append(token)
-    #print (toe)
     return token_lst
 
 def extract_posting(query_list):
+    
+    # ------------
+    # For each token in the query list we calculate the query weight
+    # and storing it in a dictionary. Then we normalize the query token weights
+    # and calculate cosine similarity
+    # -------------
     global start_time
     global cache_dict
-    #posting_list = []
+    global score_dict
     posting_dict = {}
-    f = open(path+"tfidf_index.txt", 'r')
+    f = open(path+"tf_doc_index.txt", 'r')
 
-    #line_offset = get_seek()
-    #try:
+    query_weight = 0
+    normalize = 0
+    token_dict = {}
 
-    for token in query_list:
-            # print (token)
-        counter = 0
+    # Calculating the weight of the token,query
+    for token in set(query_list):
         
-            # Gives the line from where we have to start searching
+        tf = 1+math.log(query_list.count(token))
+        idf = weights[token]
+        query_weight =  tf * idf
+        token_dict[token] = query_weight
+
+    # Normalizing the weight of the token,query
+    for token,token_weight in token_dict.items():
+        normalize  += token_weight * token_weight
+    normalize = math.sqrt(normalize)
+
+    for token in set(query_list):
+
+        weight_token = token_dict[token]/normalize
         
+        # If the token exists in the index then we move further. 
         if token in index_of_index: 
-        #try:
+        
             if token not in cache_dict:
+                
                 f.seek(line_offset[index_of_index[token]-1])  
-                # Reads the first line from where we have to start  after seek
                 line = f.readline()  
-                line = ast.literal_eval(line)
+                line = ast.literal_eval(line)                  
                 dict_ = line
-                #key = [*dict_.keys()][0]
                 value = dict_[token]
-                posting_dict[token] = dict(sorted(value.items(), key = lambda x:x[1], reverse = True)) #value
-            
-                #print (posting_dict[key])
-                #print()
-                #posting_list.append(posting_dict)
-            #except:
-                #print ("query not in the index")
-                #f.close()
+                posting_dict[token] = dict(sorted(value.items(), key = lambda x:x[1], reverse = True)) 
+        
             else:
+
                 value = cache_dict[token]
-                posting_dict[token] = dict(sorted(value.items(), key = lambda x:x[1], reverse = True)) #value
-                #posting_list.append(posting_dict)
+                posting_dict[token] = dict(sorted(value.items(), key = lambda x:x[1], reverse = True)) 
+            
+            # Calculating cosine similarity and saving it inside score_dict
+            for docID, weight_doc in value.items():
+                if docID in score_dict:
+                    score_dict[docID] += weight_doc * weight_token
+                else:
+                    score_dict[docID] = weight_doc * weight_token
+    
     f.close()
     if (posting_dict!={}):
-        #print("HERE", posting_list)
-        #stop = timeit.default_timer()
-        #print ("TIME:", (stop - start_time) * 1000, 'milliseconds')
-        find_query(posting_dict)
+        return(find_query(posting_dict))
 
 def find_query(posting_dict):
     
+    #-------------
+    # We sort the posting and intersect the two posting sets one at a time 
+    # based on the increasing order of the length of the posting list for 
+    # each token.
+    #-------------
+    
     global start_time
+    
     list_docId =[]
-    #print(posting_dict)
-    #print()
-    #print("HERE")
     index = -1
-    final_index = 0
-    length = 1000
    
-    #stop = timeit.default_timer()
-    #print ("TIME:", (stop - start_time) * 1000, 'milliseconds')
-    for token, posting in posting_dict.items():
-
+    for token,posting in sorted(posting_dict.items(), key = lambda x: len(x[1])):
+        
         set_ = OrderedSet(posting.keys())
-        #print("SET", set_)
-        index += 1
-        if len(set_) < length:
-            final_index = index 
-            length = len(set_)
         list_docId.append(set_)
   
-    #list_docId.sort(key=len)
-    
-    set_intersection = list_docId[final_index]
-    list_docId.pop(final_index)
-    #stop = timeit.default_timer()
-    #print ("TIME:", (stop - start_time) * 1000, 'milliseconds')
+    # Set intersection of the posting lists for term in the query in
+    # increasing order of length of the list.
+
+    set_intersection = list_docId[0]
+    list_docId.pop(0)
     list_docId = sorted(list_docId, key=len)
-    #stop = timeit.default_timer()
-    #print ("TIME:", (stop - start_time) * 1000, 'milliseconds')
-    #list_docId.sort(key=len)
-    #print (list_docId)
     if len(list_docId) >= 1:
         for sets in list_docId:
             set_intersection = set_intersection.intersection(sets)
-            #set_intersection = set_intersection & sets
-    #set_intersection  = set.intersection(*list_docId)
-    #print (set_intersection)
+           
+    # Calculating Time
     stop = timeit.default_timer()
+    print()
+    time_ = stop - start_time
     print ("TIME:", (stop - start_time) * 1000, 'milliseconds')
     print()
     set_intersection = list(set_intersection)
-    # print (set_intersection)
+
+    count =0
+    list_= ''
+    list_+= 'TIME: '+str(time_*1000)+'\n'
     
+    # Normalising the total score of the document for the query entered. 
+    for doc, score in score_dict.items():
+       
+        doc_score = score_dict[doc]
+        score_dict[doc] = doc_score/length_[doc] 
+   
+    # Extracting top 5 URLS and 
+    # checking exact similarity(Extra Credit)
+    exact_checking = []
+    for doc, score in sorted(score_dict.items(), key = lambda x:x[1], reverse = True):
+        if score not in exact_checking:
+            if doc in set_intersection:
+                list_+=str(urls[doc])+'\n' 
+                print (urls[doc],'** SCORE: **',score)
+                count+=1
+            elif len(set_intersection)<=count:
+                print (urls[doc],'** SCORE: **',score)
+                count+=1
+            if count == 5:
+                break
+            exact_checking.append(score)
+    return list_
+        
 
-    url = 0
-    while len(set_intersection) > url and url < 5:
+score_dict = {}
+line_offset = []
+cache_dict = {}
 
-        print(urls[set_intersection[url]])
-        url = url + 1
+path = "/Users/kamaniya/Documents/Search-Engine/"
+
+# For printing out the URL's
+f2 = open(path+"urls.txt", 'r')
+line = f2.read()
+urls = ast.literal_eval(line)
+f2.close()
+start_time = timeit.default_timer()
+
+# For extracting the posting list 
+index_of_index = {}
+f = open(path+"index_of_index_tf.txt", 'r')
+index = f.read()
+index_of_index = ast.literal_eval(index)
+f.close()
+
+# For getting the weights of the token
+# so as to calculate the token, query weight
+weight = {}
+f = open(path+"idf_token_index.txt", 'r')
+weight_query = f.read()
+weights = ast.literal_eval(weight_query)
+f.close()
+
+# For normalizing the final scores of the 
+# document so that the documents are ranked 
+# irrespective of the number of words the 
+# document has. 
+f = open(path+"length.txt", 'r')
+len_ = f.read()
+length_ = ast.literal_eval(len_)
+f.close()
+
+get_cache()
+get_seek()
 
 if __name__ == "__main__":
-    line_offset = []
-    cache_dict = {}
-    path = "/Users/kamaniya/Documents/Search-Engine/"
-    
-    f2 = open(path+"urls.txt", 'r')
-    line = f2.read()
-    urls = ast.literal_eval(line)
-    f2.close()
-    start_time = timeit.default_timer()
-    
-    index_of_index = {}
-    f = open(path+"index_of_index_tf.txt", 'r')
-    index = f.read()
-    index_of_index = ast.literal_eval(index)
-    get_seek()
-    query = get_query()
-    extract_posting(query)
-    print()
-    f.close()
+
+    choice = 'y'
+    while choice == 'y':
+        query__ = input('Enter the query to be searched: ')
+        query = get_query(query__)
+        extract_posting(query)
+        print()
+        choice = input('Do you want to search another term? (y/n): ')
+        score_dict = {}

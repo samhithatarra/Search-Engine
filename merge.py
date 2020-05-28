@@ -49,6 +49,7 @@ def merge_files(file1, file2, file3):
             line2 = f2.readline()
 
     # Add any remaining lines if one file is larger than the other 
+
     if line1 == "" and line2 != "":  
        
         while line2 != "":
