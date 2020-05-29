@@ -88,8 +88,6 @@ stores it in merge_2.txt
 
 **offset.txt**: A text file that contains a list of the seek positions of a particular token
 
-**query_weight.txt**: A dictionary that has the token as the key and the sum of the idf scores of the token as its value
-
 
 
 
