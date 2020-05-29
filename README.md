@@ -27,7 +27,7 @@ ARCHITECTURE
 
 **tfidf.py**:
 
-- Used to create normalizing scores for each document so as to convert the token 
+- Used lnc.ltc scheme to create normalizing scores for each document so as to convert the token 
   document weight into a vector and then use that to calculate 
   the tf score normalized for the document. 
 - Structure of index: 
@@ -53,7 +53,7 @@ ARCHITECTURE
 - Has function to read and use cache dictionary to speed up query processing when possible
 - Retrieves seek position dictionary to find tokens and their associated documents quickly
 - Calculates query search time
-- Returns 10 most relevant URLs to the user
+- Returns 10 most relevant URLs to the user checking and removing any similar/exact URLs
 
 
 **gui.py**:
