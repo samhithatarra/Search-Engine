@@ -17,7 +17,7 @@ ARCHITECTURE
 - Offloads 4 times by creating partial indexes that contain the token and its associated posting list
 - Stores a final merge of all posting lists
 - Structure of index: 
-  {token: {docID: [posting]}, {docID: [posting]}, {docID: [posting]}
+  {token: {docID: [posting], docID: [posting], docID: [posting]}
   [posting] = [token_frequency(total_frequency), header frequency, body_frequency]
 
 
@@ -31,7 +31,7 @@ ARCHITECTURE
   document weight into a vector and then use that to calculate 
   the tf score normalized for the document. 
 - Structure of index: 
-  - {token: {docID: [posting]}, {docID: [posting]}, {docID: [posting]}
+  - {token: {docID: [posting], docID: [posting], docID: [posting]}
   - [posting] = [tf_score]
 - Calculate the IDF score for each token so as to calculate token query weight. 
 - Calculate the length array so as to normalize the cosine scores for the documents retrieved after the query is entered.
